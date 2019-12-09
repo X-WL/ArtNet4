@@ -132,6 +132,7 @@ int Artnet::handle_poll(artnet_poll_t *packet)
 
 int Artnet::handle_ipprog(artnet_ipprog_t *packet)
 {
+  //TODO: CHANGE PORT & Settings
   Serial.println("IpProg package!");
   Serial.print("IP: ");
   Serial.print(packet->ProgIpHi);
@@ -146,12 +147,11 @@ int Artnet::handle_ipprog(artnet_ipprog_t *packet)
   Serial.print("Port: ");
   Serial.print(packet->ProgPortHi);
   Serial.println(packet->ProgPortLo); 
-  //TODO: CHANGE PORT
-  fill_art_node(&ArtNode, settings);
+  
+  fill_art_node(&ArtNode);
   fill_art_poll_reply(&ArtPollReply, &ArtNode);
   fill_art_ipprog_reply(&ArtIpprogReply, &ArtNode);
-  send_reply(UNICAST, (uint8_t *)&ArtIpprogReply, sizeof(ArtIpprogReply), settings);
-*/
+  send_reply(UNICAST, (uint8_t *)&ArtIpprogReply, sizeof(ArtIpprogReply));
   if (artnetIpProgCallback != NULL)
   {
     artnetIpProgCallback(packet);
