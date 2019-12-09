@@ -10,7 +10,6 @@ void Artnet::setNetwork(uint8_t mac[], uint8_t ip[], uint8_t subnet[]){
   memcpy(this->mask_subnet, subnet, 4);
 }
 
-    artnetIpProgCallback = callback;
 bool Artnet::begin(uint16_t in[], uint8_t num_in, uint16_t out[], uint8_t num_out){
   num_in_port = num_in;
   num_out_port = num_out;
