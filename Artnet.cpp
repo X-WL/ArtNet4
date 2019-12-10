@@ -148,10 +148,10 @@ int Artnet::handle_ipprog(artnet_ipprog_t *packet)
   Serial.print(packet->ProgPortHi);
   Serial.println(packet->ProgPortLo); 
   
-  fill_art_node(&ArtNode);
-  fill_art_poll_reply(&ArtPollReply, &ArtNode);
-  fill_art_ipprog_reply(&ArtIpprogReply, &ArtNode);
-  send_reply(UNICAST, (uint8_t *)&ArtIpprogReply, sizeof(ArtIpprogReply));
+  // fill_art_node(&ArtNode);
+  // fill_art_poll_reply(&ArtPollReply, &ArtNode);
+  // fill_art_ipprog_reply(&ArtIpprogReply, &ArtNode);
+  // send_reply(UNICAST, (uint8_t *)&ArtIpprogReply, sizeof(ArtIpprogReply));
   if (artnetIpProgCallback != NULL)
   {
     artnetIpProgCallback(packet);
