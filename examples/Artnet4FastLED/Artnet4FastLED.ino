@@ -28,7 +28,7 @@ const char* password = "pswd";
 
 Artnet artnet(udp);
 
-  uint8_t ip_local[4] = {192, 168, 0, 41};     // the IP address of node
+  uint8_t ip_local[4] = {192, 168, 0, 31};     // the IP address of node
   uint8_t mask_subnet[4] = {255, 255, 255, 0}; // network mask (art-net use 'A' network type)
   uint8_t ip_gateway[4] = {192, 168, 0, 1}; 
   uint8_t factory_dns[4] = {192, 168, 0, 1}; 
@@ -46,8 +46,11 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("\nWiFi connected");
-  Serial.println("IP address: ");
+  Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+  byte mac[6];
+  WiFi.macAddress(mac);
+  Serial.printf("MAC address: %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
   FastLED.addLeds<LED_TYPE,DATA_PIN1,COLOR_ORDER>(leds, 0, NUM_LEDS_PER_STRIP);
   FastLED.addLeds<LED_TYPE,DATA_PIN2,COLOR_ORDER>(leds, NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP);
   FastLED.addLeds<LED_TYPE,DATA_PIN3,COLOR_ORDER>(leds, 2 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP);
@@ -56,22 +59,29 @@ void setup() {
 
   uint16_t in_map[4] = {0,1,2,3};
   uint16_t out_map[1] = {9}; //TODO
+  artnet.init(mac, ip_local, mask_subnet);
   artnet.setArtnetRecvCallback(recvCallback);
   // input map, input map size, output map, output map size
   artnet.begin(in_map, 4, out_map, 1);  
 }
 
+int packetCounter = 0;
+
 void loop() {
   EVERY_N_MILLISECONDS( 30 ) { FastLED.show();  }
   artnet.handle();
+  EVERY_N_MILLISECONDS( 1000 ) { 
+    char *report = "";
+    sprintf(report, "Recieved packet: %d per second", packetCounter);
+    artnet.setReport(report);
+    packetCounter = 0;
+  }
 }
 
 void recvCallback(uint8_t *data, uint16_t port){
-  Serial.print("port");
-  Serial.println(port);
+  packetCounter++;
   switch (port) {
     case 0: {
-      Serial.println("Callback1");
       uint16_t pointer=0;
       for (int i=0; i<NUM_LEDS_PER_STRIP;i++){
         leds[0*NUM_LEDS_PER_STRIP+i] = CRGB(data[pointer++],data[pointer++],data[pointer++]);

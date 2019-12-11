@@ -4,10 +4,13 @@ Artnet::Artnet(UDP& udp){
   this->udp = &udp;
 }
 
-void Artnet::setNetwork(uint8_t mac[], uint8_t ip[], uint8_t subnet[]){
-  memcpy(this->mac_address, mac, 6);
-  memcpy(this->ip_local, ip, 4);
-  memcpy(this->mask_subnet, subnet, 4);
+void Artnet::init(uint8_t mac[], uint8_t ip[], uint8_t subnet[]){
+  fillArtNode(&ArtnetNode, mac, ip, subnet);
+  fillArtPollReply(&ArtPollReply, &ArtnetNode);
+  fillArtIpprogReply(&ArtIpprogReply, &ArtnetNode);
+  // memcpy(this->mac_address, mac, 6);
+  // memcpy(this->ip_local, ip, 4);
+  // memcpy(this->mask_subnet, subnet, 4);
 }
 
 bool Artnet::begin(uint16_t in[], uint8_t num_in, uint16_t out[], uint8_t num_out){
@@ -17,16 +20,11 @@ bool Artnet::begin(uint16_t in[], uint8_t num_in, uint16_t out[], uint8_t num_ou
   Serial.printf("Num out port = %d\n", num_out_port);
   memcpy(in_map, in, num_in*2);
   memcpy(out_map, out, num_out*2);
-  Serial.print("Artnet started!");
   udp->begin(6454);
-
-  fill_art_node(&ArtnetNode);
-  fill_art_poll_reply(&ArtPollReply, &ArtnetNode);
-  fill_art_ipprog_reply(&ArtIpprogReply, &ArtnetNode);
   //printPacket((uint8_t*)&ArtPollReply);
   //printPacketByte((uint8_t*)&ArtPollReply);
   sendPackage((uint8_t *)&ArtPollReply, sizeof(ArtPollReply),0);
-  
+  Serial.print("Artnet started!");
   is_Started = true;
   return true;
 }
@@ -165,61 +163,36 @@ int Artnet::handle_address(artnet_address_t *packet) //not implemented yet
 
 
 
-void Artnet::fill_art_node(artnet_node_t *node)
-{
-  //fill to 0's
+void Artnet::fillArtNode(artnet_node_t *node, uint8_t mac[], uint8_t ip[], uint8_t subnet[]){
   memset(node, 0, sizeof(node));
-  //  2c f4 32 5e 24 fe
 
-  //fill data
-   node->mac[0] = 44;
-   node->mac[1] = 244;
-   node->mac[2] = 32;
-   node->mac[3] = 94;
-   node->mac[4] = 24;
-   node->mac[5] = 254;
-  //  memcpy(node->mac, {44,244,32,94,24,254}, 6);                   // the mac address of node
-  //memcpy(node->localIp, netConf.ip_local, 4);           // the IP address of node
-  //memcpy(node->subnetMask, netConf.mask_subnet, 4);     // network mask (art-net use 'A' network type)
+  memcpy(node->mac, mac, 6);                   // the mac address of node
+  memcpy(node->localIp, ip, 4);           // the IP address of node
+  memcpy(node->subnetMask, subnet, 4);     // network mask (art-net use 'A' network type)
 
   sprintf((char *)node->id, "Art-Net\0"); // *** don't change never ***
-  sprintf((char *)node->shortname, shortName);
-  sprintf((char *)node->longname, longName);
-  sprintf((char *)node->nodereport, report);
+  sprintf((char *)node->shortname, defaultShortName);
+  sprintf((char *)node->longname, defaultLongName);
+  sprintf((char *)node->nodereport, defaultReport);
 
-  //memset(node->porttypes, 0x80, ARTNET_MAX_PORTS);
-  //memset(node->goodinput, 0x08, ARTNET_MAX_PORTS);
   node->numbports = 4;
-
-  memset(node->porttypes, 0x45, 4);
+  memset(node->porttypes, 0xc5, 4);
   memset(node->goodinput, 0x80, 4);
-  memset(node->goodoutput, 0x00, 4);
+  memset(node->goodoutput, 0x80, 4);
 
-  node->subH = 0x00; // high byte of the Node Subnet Address (This field is currently unused and set to zero. It is
-  // provided to allow future expansion.) (art-net III)
-  node->sub = 0x00; // low byte of the Node Subnet Address
+  node->subH = 0x00; 
+  node->sub = 0x00; 
 
   // **************************** art-net address of universes **********************************
-  // not implemented yet
   node->swin[0] = 0x00; // This array defines the 8 bit Universe address of the available input channels.
   node->swin[1] = 0x01; // values from 0x00 to 0xFF
   node->swin[2] = 0x02;
   node->swin[3] = 0x03;
-  //node->swin[0] = 0x08;        // This array defines the 8 bit Universe address of the available input channels.
-  //node->swin[1] = 0x09;        // values from 0x00 to 0xFF
-  //node->swin[2] = 0x0A;
-  //node->swin[3] = 0x0B;
 
   node->swout[0] = 0x00; // This array defines the 8 bit Universe address of the available output channels.
   node->swout[1] = 0x01; // values from 0x00 to 0xFF
   node->swout[2] = 0x02;
   node->swout[3] = 0x03;
-  //node->swout[4] = 0x04;
-
-  node->goodoutput[0] = 0x80;
-  node->goodoutput[1] = 0x80;
-  node->goodoutput[2] = 0x80;
-  node->goodoutput[3] = 0x80;
 
   node->etsaman[0] = 0;     // The ESTA manufacturer code.
   node->etsaman[1] = 0;     // The ESTA manufacturer code.
@@ -238,18 +211,15 @@ void Artnet::fill_art_node(artnet_node_t *node)
   node->style = 0; // StNode style - A DMX to/from Art-Net device
 }
 
-void Artnet::fill_art_poll_reply(artnet_reply_t *poll_reply, artnet_node_t *node)
-{
-  //fill to 0's
+void Artnet::fillArtPollReply(artnet_reply_t *poll_reply, artnet_node_t *node){
   memset(poll_reply, 0, sizeof(poll_reply));
 
-  //copy data from node
   memcpy(poll_reply->id, node->id, sizeof(poll_reply->id));
   memcpy(poll_reply->ip, node->localIp, sizeof(poll_reply->ip));
   memcpy(poll_reply->mac, node->mac, sizeof(poll_reply->mac));
   memcpy(poll_reply->shortname, node->shortname, sizeof(poll_reply->shortname));
   memcpy(poll_reply->longname, node->longname, sizeof(poll_reply->longname));
-  memcpy(poll_reply->nodereport, node->nodereport, sizeof(poll_reply->mac));
+  memcpy(poll_reply->nodereport, node->nodereport, sizeof(poll_reply->nodereport));
   memcpy(poll_reply->porttypes, node->porttypes, sizeof(poll_reply->porttypes));
   memcpy(poll_reply->goodinput, node->goodinput, sizeof(poll_reply->goodinput));
   memcpy(poll_reply->goodoutput, node->goodoutput, sizeof(poll_reply->goodoutput));
@@ -274,12 +244,9 @@ void Artnet::fill_art_poll_reply(artnet_reply_t *poll_reply, artnet_node_t *node
   poll_reply->style = node->style;
 }
 
-void Artnet::fill_art_ipprog_reply(artnet_ipprog_reply_t *ipprog_reply, artnet_node_t *node)
-{
-  //fill to 0's
+void Artnet::fillArtIpprogReply(artnet_ipprog_reply_t *ipprog_reply, artnet_node_t *node){
   memset(ipprog_reply, 0, sizeof(ipprog_reply));
 
-  //copy data from node
   memcpy(ipprog_reply->id, node->id, sizeof(ipprog_reply->id));
 
   ipprog_reply->ProgIpHi = node->localIp[0];
@@ -324,6 +291,18 @@ void Artnet::sendPackage(uint8_t *packet, uint16_t size, const uint8_t mode){
     udp->endPacket();
   }
 }
+
+void Artnet::setReport(char *report){
+  sprintf((char *)ArtnetNode.nodereport, report);
+  sprintf((char *)ArtPollReply.nodereport, report);
+}
+// void Artnet::setReport(artnet_reply_t *poll_reply, artnet_node_t *node, char *report){
+//   sprintf((char *)node->nodereport, report);
+//   sprintf((char *)poll_reply->nodereport, report);
+//   // memcpy(poll_reply->nodereport, node->nodereport, sizeof(poll_reply->mac));
+//   // poll_reply->nodereport=
+//   // , node->nodereport  
+// }
 
 void Artnet::printPacket(uint8_t *packet)
 {
